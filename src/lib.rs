@@ -12,9 +12,9 @@
     clippy::borrow_interior_mutable_const
 )]
 
-mod EDIT;
+mod hooks;
 
 #[skyline::main(name = "smashline_test")]
 pub fn main() {
-    EDIT::install();
+    hooks::install();
 }
