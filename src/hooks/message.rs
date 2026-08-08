@@ -1,11 +1,9 @@
-use serde::{Deserialize, Serialize};
-use smash::lib::lua_const::{
-    *
-};
-use std::{io::Write, net::TcpStream, ops::ShrAssign, sync::LazyLock};
 use rmp_serde::Serializer;
+use serde::{Deserialize, Serialize};
+use smash::lib::lua_const::*;
+use std::{io::Write, net::TcpStream, ops::ShrAssign, sync::LazyLock};
 
-use super::STREAM;
+use super::OUTGOING;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Message {
@@ -19,7 +17,6 @@ pub struct FighterInfo {
     pub location: Vector3fInfo,
     pub damage: f32,
     pub is_shield: bool,
-    pub shield_strength: f32,
     pub attack: AttackInfo,
     pub grounded_ke: Vector3fInfo,
     pub situation: SituationKindInfo,
@@ -86,6 +83,7 @@ pub enum StatusKindInfo {
     Fall,
     Dash,
     Jump,
+    Win,
     Lose,
     Walk,
     Grab,
@@ -128,6 +126,8 @@ impl From<i32> for StatusKindInfo {
         let escape: i32 = FIGHTER_STATUS_KIND_ESCAPE.into();
         let escape_b: i32 = FIGHTER_STATUS_KIND_ESCAPE_B.into();
         let escape_f: i32 = FIGHTER_STATUS_KIND_ESCAPE_F.into();
+        let lose: i32 = FIGHTER_STATUS_KIND_LOSE.into();
+        let win: i32 = FIGHTER_STATUS_KIND_WIN.into();
         if x == ice {
             Self::Ice
         } else if x == run {
@@ -170,6 +170,10 @@ impl From<i32> for StatusKindInfo {
             Self::EscapeB
         } else if x == escape_f {
             Self::EscapeF
+        } else if x == lose {
+            Self::Lose
+        } else if x == win {
+            Self::Win
         } else {
             Self::Unmapped
         }
@@ -198,7 +202,7 @@ pub struct Vector3fInfo {
 
 impl Message {
     pub fn send_state(&mut self, stream: &mut TcpStream) -> std::io::Result<()> {
-	self.serialize(&mut Serializer::new(stream)).unwrap();
+        self.serialize(&mut Serializer::new(stream)).unwrap();
         Ok(())
     }
 }
