@@ -24,13 +24,11 @@ use {
 
 static mut OUTGOING: LazyLock<TcpStream> = LazyLock::new(|| {
     let stream = TcpStream::connect(REMOTE_HOST).unwrap();
-    stream.set_nodelay(true);
     stream
 });
 static mut INCOMING: LazyLock<TcpStream> = LazyLock::new(|| {
     let listener = TcpListener::bind(HOST).unwrap();
     let (stream, _) = listener.accept().unwrap();
-    stream.set_nodelay(true);
     stream
 });
 static mut MESSAGE_BUF: LazyLock<Message> = LazyLock::new(|| Message::default());
@@ -40,8 +38,8 @@ unsafe extern "C" fn fighter_frame(fighter: &mut L2CFighterCommon) {
     let player_slot =
         WorkModule::get_int(module_accessor, *FIGHTER_INSTANCE_WORK_ID_INT_ENTRY_ID) as usize;
     let target = match player_slot {
-        0 => &mut MESSAGE_BUF.cpu,
-        1 => &mut MESSAGE_BUF.opp,
+        CPU_INDEX => &mut MESSAGE_BUF.cpu,
+        OPP_INDEX => &mut MESSAGE_BUF.opp,
         _ => return,
     };
     let vel_3f =
@@ -74,9 +72,8 @@ unsafe extern "C" fn fighter_frame(fighter: &mut L2CFighterCommon) {
     target.grounded_ke.x = vel_3f.x;
     target.grounded_ke.y = vel_3f.y;
     target.grounded_ke.z = vel_3f.z;
-    // MESSAGE_BUF.turn = player_slot;
     MESSAGE_BUF.stage = stage::get_stage_id() as usize;
-    if player_slot == 0 {
+    if player_slot == CPU_INDEX {
         MESSAGE_BUF
             .send_state(&mut OUTGOING)
             .map_err(|err| println!("{}", err))
@@ -88,8 +85,5 @@ unsafe extern "C" fn fighter_frame(fighter: &mut L2CFighterCommon) {
 }
 
 pub fn install() {
-    // skyline::install_hooks!(situation_kind_replace);
     Agent::new("marth").on_line(Main, fighter_frame).install();
-    //.on_start(agent_init)
-    //.on_end(agent_deinit);
 }
